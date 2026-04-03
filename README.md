@@ -4,13 +4,26 @@ CPU-first scaffolding for the Go/No-Go calibration stage in `research_plan.md`.
 
 ## Status
 
-This repository is ready for the GPU-dependent calibration phase.
+**Go/No-Go: PASS (2026-04-03, A100 MIG 2g-20GB)**
 
-- CPU-only scaffolding is implemented
-- manifests/configs are frozen for the current plan
-- static checks pass: `ruff`, `pyright`, `ty`
-- tests pass: `13 passed`
-- real Gemma 4 loading and write-step validation remain GPU-blocked
+All four critical checks passed. Ready for full calibration on RTX PRO 6000.
+
+| Check | Status | Summary |
+|-------|--------|---------|
+| Scaffold quality | PASS | Model correctly uses bounded scaffold context |
+| Write vs Stable | PASS | Richer context enables multi-hop reasoning |
+| Cache exact recall | PASS | Exact spans eliminate hallucination |
+| Thinking mode | PASS | Distinct thinking/non-thinking decode paths |
+
+See [`docs/BRINGUP_LOG.md`](docs/BRINGUP_LOG.md) for detailed bring-up history.
+
+## Verified Model Configuration
+
+- **Model:** `google/gemma-4-E2B-it` (5.12B params, bfloat16)
+- **API:** `AutoProcessor` + `AutoModelForCausalLM` (not AutoTokenizer)
+- **Message format:** Multimodal — `[{"type": "text", "text": "..."}]`
+- **Thinking:** `enable_thinking=True/False` in `processor.apply_chat_template()`
+- **Thinking tags:** `<|channel>thought ... <|/channel>`
 
 ## Quickstart
 
@@ -30,47 +43,71 @@ uv run tristore-calibrate summarize-artifacts --root artifacts
 uv run pytest
 ```
 
-## GPU Handoff
+## GPU Execution
 
 When a GPU is available:
 
 ```bash
+# For CUDA 13+ (torch 2.11)
 uv sync --extra model --extra dev
+
+# For CUDA 12.x (torch 2.5.x)
+python3.10 -m venv .venv
+.venv/bin/pip install 'torch==2.5.1+cu121' 'torchvision==0.20.1+cu121' --index-url https://download.pytorch.org/whl/cu121
+.venv/bin/pip install 'transformers>=4.51' accelerate safetensors tokenizers pillow pyyaml scikit-learn tqdm -e .
+```
+
+Run go/no-go checks:
+
+```bash
+.venv/bin/python scripts/go_nogo.py
+```
+
+Start calibration:
+
+```bash
 uv run tristore-calibrate calibrate --config configs/gpu_handoff.yaml
 ```
 
-Read [`GPU_HANDOFF.md`](docs/GPU_HANDOFF.md) before the first model run.
+Read [`docs/GPU_HANDOFF.md`](docs/GPU_HANDOFF.md) for the full GPU execution checklist.
 
 ## What Exists
 
-This repository currently focuses on the GPU-free portion of Week 1:
+### Core Pipeline
+- **Chunking:** sliding window with configurable overlap
+- **Scaffold:** TF-IDF + lexical query matching with coverage penalty
+- **Preselector:** top-K chunk shortlisting
+- **Cache:** rarity-based exact span selection
+- **Allocator:** marginal-utility interleaving (write vs cache)
+- **Simulation:** toy error model for plausibility checks
 
-- experiment config and manifest locking
-- chunking
-- CPU-only stable scaffold construction
-- CPU-only preselector
-- heuristic cache span proposal
-- marginal-utility interleaving allocator simulation
-- manifest and dataset inspection utilities
-- budget calibration rule checker
-- run-matrix generator
-- prompt formatting utilities
-- Gemma 4 runner interface with CPU stub
-- latency/accounting log schema
-- environment snapshot and artifact summary utilities
-- dry-run calibration CLI
+### Model Integration (GPU-verified)
+- **TransformersGemmaRunner:** real model loading, inference, thinking/non-thinking generation
+- **Response parsing:** `<|channel>thought` tag extraction
+- **VARIANT_TO_HF_ID mapping:** E2B, E4B, A4B, D31B
 
-Gemma 4 model execution and write updates remain GPU-dependent follow-up work.
+### Infrastructure
+- Experiment config and manifest locking
+- Manifest and dataset validation / cross-validation
+- Budget calibration rule checker
+- Run-matrix generator
+- Prompt formatting (multimodal Gemma 4 format)
+- Latency/accounting log schema
+- Environment snapshot and artifact summary utilities
+- Dry-run calibration CLI with 10+ subcommands
+- 18 passing tests, ruff/pyright/ty clean
 
 ## Repository Layout
 
-- [`research_plan.md`](research_plan.md): locked research plan
+- [`research_plan.md`](research_plan.md): locked research plan (v5.1, Gemma 4)
 - [`configs/`](configs): calibration and handoff configs
 - [`manifests/`](manifests): preregistered benchmark and experiment manifests
 - [`data/samples/`](data/samples): small sample datasets for CPU checks
 - [`src/tristore_bma/`](src/tristore_bma): library and CLI code
-- [`tests/`](tests): CPU-only validation tests
-- [`docs/GPU_HANDOFF.md`](docs/GPU_HANDOFF.md): first GPU execution checklist
+- [`tests/`](tests): CPU-only validation tests (18 tests)
+- [`scripts/`](scripts): GPU bring-up and go/no-go scripts
+- [`docs/GPU_HANDOFF.md`](docs/GPU_HANDOFF.md): GPU execution checklist and locked specs
+- [`docs/BRINGUP_LOG.md`](docs/BRINGUP_LOG.md): detailed bring-up history and troubleshooting
 
 ## Useful Commands
 
@@ -86,6 +123,7 @@ uv run tristore-calibrate summarize-artifacts --root artifacts
 
 ## Current Limits
 
-- `TransformersGemmaRunner` is still a placeholder until GPU-backed model loading is wired
-- prompt/message helpers are conservative placeholders, not the final Hugging Face `apply_chat_template(...)` integration
-- Go/No-Go evidence cannot be produced until actual Gemma 4 inference and write updates run on GPU
+- LoRA write-step updates not yet implemented (next: RTX PRO 6000 calibration)
+- Route overhead and budget grid not yet locked (hardware-dependent)
+- Full RULER/LongBench v2 benchmark loaders beyond sample JSONL files
+- Hybrid interior split behavior not yet empirically confirmed
