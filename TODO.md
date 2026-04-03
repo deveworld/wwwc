@@ -13,10 +13,10 @@
 
 ## Next GPU Tasks
 
-- [ ] Install model dependencies with `uv sync --extra model --extra dev`
-- [ ] Implement real Gemma 4 loading in `TransformersGemmaRunner`
-- [ ] Verify Hugging Face `apply_chat_template(..., enable_thinking=...)` for the chosen Gemma 4 variant
-- [ ] Verify response parsing for thinking and non-thinking outputs
+- [x] Install model dependencies with `uv sync --extra model --extra dev`
+- [x] Implement real Gemma 4 loading in `TransformersGemmaRunner`
+- [x] Verify Hugging Face `apply_chat_template(..., enable_thinking=...)` for the chosen Gemma 4 variant
+- [x] Verify response parsing for thinking and non-thinking outputs
 - [ ] Measure real route overhead and run `budget-check` with measured numbers
 - [ ] Run first `configs/gpu_handoff.yaml` calibration
 - [ ] Lock chat template / parsing rule / default variant after first successful run
