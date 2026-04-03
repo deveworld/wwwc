@@ -1,0 +1,35 @@
+[project]
+name = "tristore-bma"
+version = "0.1.0"
+description = "CPU-first research scaffolding for TriStore-BMA calibration and smoke tests."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=2.1.0",
+  "pyyaml>=6.0.2",
+  "scikit-learn>=1.5.2",
+]
+
+[project.optional-dependencies]
+model = [
+  "accelerate>=1.4.0",
+  "torch>=2.4.0",
+  "transformers>=4.51.3",
+]
+dev = [
+  "pytest>=8.3.5",
+]
+
+[project.scripts]
+tristore-calibrate = "tristore_bma.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+default-groups = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

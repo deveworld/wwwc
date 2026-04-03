@@ -1,0 +1,15 @@
+name: longbench_v2_selection
+frozen_at: "2026-04-03"
+categories:
+  - multi_document_qa
+  - code_repository_understanding
+  - long_structured_data
+  - long_dialogue_history
+subset_ids:
+  - lbv2-mdqa-001
+  - lbv2-code-002
+  - lbv2-struct-003
+  - lbv2-dialogue-004
+notes:
+  - "Internal bounded-prompt comparison uses raw-length buckets."
+  - "Full-context baselines are fit-subset only."

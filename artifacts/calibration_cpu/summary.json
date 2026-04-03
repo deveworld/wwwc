@@ -1,0 +1,66 @@
+{
+  "manifest": "ruler_mixed_slices",
+  "allocation_steps": [
+    {
+      "step": 1,
+      "target": "cache",
+      "target_id": 0,
+      "marginal_gain": 4.529319268075891,
+      "budget_remaining": 7
+    },
+    {
+      "step": 2,
+      "target": "cache",
+      "target_id": 0,
+      "marginal_gain": 4.462259355057805,
+      "budget_remaining": 6
+    },
+    {
+      "step": 3,
+      "target": "cache",
+      "target_id": 2,
+      "marginal_gain": 4.3560324729359055,
+      "budget_remaining": 5
+    },
+    {
+      "step": 4,
+      "target": "write",
+      "target_id": 4,
+      "marginal_gain": 0.11944559316609896,
+      "budget_remaining": 4
+    },
+    {
+      "step": 5,
+      "target": "write",
+      "target_id": 3,
+      "marginal_gain": 0.1057262743052754,
+      "budget_remaining": 3
+    },
+    {
+      "step": 6,
+      "target": "write",
+      "target_id": 2,
+      "marginal_gain": 0.09069088910875517,
+      "budget_remaining": 2
+    },
+    {
+      "step": 7,
+      "target": "write",
+      "target_id": 0,
+      "marginal_gain": 0.0859798800284344,
+      "budget_remaining": 1
+    },
+    {
+      "step": 8,
+      "target": "write",
+      "target_id": 4,
+      "marginal_gain": 0.0,
+      "budget_remaining": 0
+    }
+  ],
+  "simulation": {
+    "write_units": 5,
+    "cache_units": 3,
+    "expected_error": 0.3035714285714286
+  }
+}

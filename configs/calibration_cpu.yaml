@@ -1,0 +1,26 @@
+gemma_variant: gemma-4-E2B-it
+manifests_path: manifests/ruler_mixed_slices.yaml
+sample_query: "Which parts describe hybrid allocation, cache retention, and preregistration?"
+output_dir: artifacts/calibration_cpu
+
+scaffold:
+  max_scaffold_tokens: 128
+  max_scaffold_spans: 4
+  chunk_size: 32
+  chunk_overlap: 8
+  lexical_weight: 0.7
+  tfidf_weight: 0.3
+  coverage_decay: 0.85
+
+preselector:
+  shortlist_k: 4
+  lexical_weight: 0.6
+  tfidf_weight: 0.4
+
+cache:
+  span_size: 12
+  max_spans: 3
+
+budget:
+  ratios: [0.0, 0.5, 1.0, 1.5]
+  base_latency_ms: 1000.0

@@ -1,0 +1,13 @@
+name: ruler_mixed_slices
+frozen_at: "2026-04-03"
+raw_length_buckets:
+  - 32000
+  - 64000
+  - 128000
+mixed_slices:
+  - retrieval_plus_tracing
+  - retrieval_plus_aggregation
+  - tracing_plus_qa
+notes:
+  - "Preregistered before result inspection."
+  - "Applies to internal equal-budget comparisons only."

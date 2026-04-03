@@ -1,0 +1,24 @@
+gemma_variant: gemma-4-E4B-it
+manifests_path: manifests/longbench_v2_selection.yaml
+sample_document_path: data/samples/longbench_v2_mini.jsonl
+sample_query: "Find the mixed-failure evidence and explain why split allocation matters."
+output_dir: artifacts/simulation_cpu
+
+scaffold:
+  max_scaffold_tokens: 192
+  max_scaffold_spans: 4
+  chunk_size: 48
+  chunk_overlap: 12
+
+preselector:
+  shortlist_k: 4
+
+cache:
+  span_size: 16
+  max_spans: 4
+
+allocation:
+  total_budget_units: 6
+  write_step_cost: 1
+  cache_span_cost: 1
+  write_penalty_delta: 0.12

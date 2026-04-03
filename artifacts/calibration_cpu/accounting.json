@@ -1,0 +1,20 @@
+{
+  "gemma_variant": "gemma-4-E2B-it",
+  "raw_document_length": 106,
+  "final_materialized_prompt_length": 147,
+  "scaffold_token_count": 106,
+  "shortlist_k": 4,
+  "chunk_size": 32,
+  "cached_spans": 3,
+  "route_overhead_ms": 3.023773984750733,
+  "decode_overhead_ms": 0.0,
+  "total_write_steps": 5,
+  "thinking_enabled": false,
+  "budget_ratios": [
+    0.0,
+    0.5,
+    1.0,
+    1.5
+  ],
+  "created_at": "2026-04-03T06:22:48.355477+00:00"
+}

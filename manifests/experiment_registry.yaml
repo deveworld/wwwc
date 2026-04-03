@@ -1,0 +1,18 @@
+name: experiment_registry
+frozen_at: "2026-04-03"
+experiments:
+  - id: ruler_cpu_calibration
+    benchmark: ruler
+    manifest: manifests/ruler_mixed_slices.yaml
+    config: configs/calibration_cpu.yaml
+    purpose: cpu_smoke_and_schema_lock
+  - id: longbench_cpu_simulation
+    benchmark: longbench_v2
+    manifest: manifests/longbench_v2_selection.yaml
+    config: configs/simulation_cpu.yaml
+    purpose: bounded_prompt_and_allocator_simulation
+  - id: gpu_handoff_default
+    benchmark: ruler
+    manifest: manifests/ruler_mixed_slices.yaml
+    config: configs/gpu_handoff.yaml
+    purpose: first_gpu_execution

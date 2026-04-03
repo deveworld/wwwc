@@ -1,0 +1,27 @@
+gemma_variant: gemma-4-E4B-it
+manifests_path: manifests/ruler_mixed_slices.yaml
+sample_query: "Which evidence supports hybrid allocation under a fixed budget?"
+output_dir: artifacts/gpu_handoff
+
+scaffold:
+  max_scaffold_tokens: 768
+  max_scaffold_spans: 6
+  chunk_size: 160
+  chunk_overlap: 32
+
+preselector:
+  shortlist_k: 8
+
+cache:
+  span_size: 48
+  max_spans: 6
+
+budget:
+  ratios: [0.0, 0.5, 1.0, 1.5]
+  base_latency_ms: 1000.0
+
+allocation:
+  total_budget_units: 8
+  write_step_cost: 1
+  cache_span_cost: 1
+  write_penalty_delta: 0.15
