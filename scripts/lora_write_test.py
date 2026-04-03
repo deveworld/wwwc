@@ -106,13 +106,44 @@ def load_model():
 
 
 def attach_lora(model):
-    """Attach LoRA adapters to the model for inference-time training."""
+    """Attach LoRA adapters to the model for inference-time training.
+
+    Gemma 4 uses Gemma4ClippableLinear wrappers. We target the inner
+    Linear modules via 'q_proj.linear' and 'v_proj.linear' paths.
+    If that fails, fall back to matching all nn.Linear with 'q_proj' or 'v_proj' in name.
+    """
+    # First, discover what module names exist
+    linear_names = []
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Linear) and ("q_proj" in name or "v_proj" in name):
+            linear_names.append(name)
+
+    if not linear_names:
+        raise RuntimeError("Could not find q_proj/v_proj Linear modules in model")
+
+    # Deduce pattern: e.g. "model.layers.0.self_attn.q_proj.linear"
+    # We need the suffix pattern that PEFT can match
+    sample = linear_names[0]
+    print(f"Sample target module path: {sample}")
+
+    # Try with explicit '.linear' suffix if Gemma4ClippableLinear wraps Linear
+    target_modules = ["q_proj.linear", "v_proj.linear"]
+    # Verify these paths exist
+    found = any(t in name for name in linear_names for t in target_modules)
+    if not found:
+        # Fallback: use exact discovered names
+        target_modules = list(set(
+            name.split(".")[-2] + "." + name.split(".")[-1]
+            for name in linear_names
+        ))
+    print(f"LoRA target modules: {target_modules[:4]}...")
+
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
         r=16,
         lora_alpha=32,
         lora_dropout=0.0,
-        target_modules=["q_proj", "v_proj"],
+        target_modules=target_modules,
         bias="none",
     )
     peft_model = get_peft_model(model, lora_config)
