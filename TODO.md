@@ -316,9 +316,30 @@ main에서는 theorem을 크게 밀지 않고, **small but falsifiable propositi
 **이 Phase가 논문의 생사를 결정한다.**
 
 ### 2.1 환경 세팅
-- [ ] RTX PRO 6000 환경 세팅 + Gemma 4 E4B bring-up
+- [x] A100 80GB PCIe 환경 세팅 (Elice Cloud, CUDA 12.2, Python 3.10, torch 2.5.1+cu121)
+- [x] PEFT/LoRA 라이브러리 통합 (pyproject.toml에 `peft>=0.13.0` 추가)
+- [ ] Gemma 4 E4B bring-up (RTX PRO 6000에서)
 - [ ] E4B chat template / thinking mode 검증
-- [ ] PEFT/LoRA 라이브러리 통합 (pyproject.toml에 `peft` 추가)
+
+### 2.1a LoRA Write Fail-Fast (2026-04-03, A100 80GB)
+
+**실험 설계:**
+- 모델: `google/gemma-4-E2B-it` (5.12B, bf16)
+- LoRA: rank=16, alpha=32, target=q_proj+v_proj, dropout=0
+- Write: 1-step SGD (lr=1e-4) on document text (self-supervised NTP loss)
+- 5개 dependency-heavy multi-hop 테스트 (chain traversal, cause-effect, inheritance)
+- 3가지 조건 비교:
+  - **Stable-only:** document in prompt, no LoRA update
+  - **Write-only:** document in prompt + 1-step LoRA update on document
+  - **Write-nodoc:** 1-step LoRA update on document, then query WITHOUT document in prompt (pure adapter recall)
+- Metric: fraction of expected entities found in answer
+
+**판정 기준:**
+- write_avg - stable_avg ≥ 0.03 → GO
+- 0 < delta < 0.03 → MARGINAL
+- delta ≤ 0 → FAIL → pivot
+
+**진행 상태:** 실험 실행 중 (A100 80GB PCIe)
 
 ### 2.2 LoRA Write-Step 구현 (P0 — acceptance gating)
 - [ ] `gemma_runner.py`에 LoRA adapter inference-time update 구현
