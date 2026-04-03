@@ -125,22 +125,31 @@ def load_model():
 
 
 def attach_lora(model):
-    linear_names = []
-    for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Linear) and ("q_proj" in name or "v_proj" in name):
-            linear_names.append(name)
-    if not linear_names:
-        raise RuntimeError("Could not find q_proj/v_proj Linear modules")
+    """Attach LoRA to language_model attention layers ONLY.
 
-    print(f"Sample target: {linear_names[0]}")
-    target_modules = ["q_proj.linear", "v_proj.linear"]
+    Critical: Gemma 4 is multimodal. q_proj/v_proj exist in vision_tower,
+    audio_tower, AND language_model. We must target ONLY language_model,
+    otherwise text NTP loss gradient won't reach the LoRA params.
+    """
+    lang_targets = []
+    for name, module in model.named_modules():
+        if (isinstance(module, torch.nn.Linear)
+                and "language_model" in name
+                and ("q_proj" in name or "v_proj" in name)):
+            lang_targets.append(name)
+
+    if not lang_targets:
+        raise RuntimeError("Could not find language_model q_proj/v_proj")
+
+    print(f"Language model LoRA targets: {len(lang_targets)} modules")
+    print(f"Sample: {lang_targets[0]}")
 
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
         r=16,
         lora_alpha=32,
         lora_dropout=0.0,
-        target_modules=target_modules,
+        target_modules=lang_targets,
         bias="none",
     )
     peft_model = get_peft_model(model, lora_config)
