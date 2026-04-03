@@ -23,11 +23,11 @@
 
 ## Go/No-Go Checks
 
-- [ ] Stable scaffold works with real Gemma 4 tokenizer/template
-- [ ] Thinking vs non-thinking decode path is reproducible
+- [x] Stable scaffold works with real Gemma 4 tokenizer/template
+- [x] Thinking vs non-thinking decode path is reproducible
 - [ ] Route overhead stays within the planned budget rule
-- [ ] Write-only beats stable-only on dependency-heavy synthetic slices
-- [ ] Cache-only beats write-only on exact-recall slices
+- [x] Write-only beats stable-only on dependency-heavy synthetic slices
+- [x] Cache-only beats write-only on exact-recall slices
 - [ ] Hybrid shows plausible interior split behavior on mixed slices
 
 ## Nice To Have
