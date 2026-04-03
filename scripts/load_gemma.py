@@ -8,7 +8,7 @@ print(f"transformers: {transformers.__version__}")
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-model_id = "google/gemma-4-2b-it"
+model_id = "google/gemma-4-E2B-it"
 print(f"Loading {model_id}...")
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
