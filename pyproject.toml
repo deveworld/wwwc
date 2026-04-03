@@ -15,6 +15,7 @@ model = [
   "accelerate>=1.4.0",
   "pillow>=10.0.0",
   "torch>=2.4.0",
+  "torchvision>=0.19.0",
   "transformers>=4.51.3",
 ]
 dev = [
