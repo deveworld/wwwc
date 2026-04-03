@@ -28,6 +28,255 @@
 
 ---
 
+## 0A. 논문 포지셔닝
+
+### 이 논문이 아닌 것
+- 새로운 recurrent / hybrid backbone 논문
+- large-scale from-scratch pretraining 논문
+- pure RAG 논문
+- pure KV-compression 논문
+- pure TTT 개선 논문
+- 모든 최신 long-context baseline을 정면으로 이기는 SOTA 논문
+
+### 이 논문인 것
+- frozen pretrained LM 위의 **test-time allocation law** 논문
+- write vs exact cache의 trade-off를 **같은 예산 축**으로 회계하는 논문
+- mixed-failure long-context tasks에서 **hybrid allocation이 필요한 이유**를 empirical로 보이는 논문
+- bounded materialized prompt를 사용하지만, contribution은 retrieval이 아니라 **allocation principle**
+
+### RAG-like 구조에 대한 stance
+이 프로젝트는 bounded final prompt를 만들기 위해 stable scaffold와 selected cache spans를 materialize한다. 따라서 **구조적으로 RAG-like하다는 공격이 온다.** 이 점은 부정하지 않고, 본문에서 먼저 인정한다.
+
+차이는 분명히 적는다:
+- 기존 RAG의 핵심 공헌: retrieval-augmented generation 자체
+- 이 논문의 핵심 공헌: 고정된 추가 latency 예산 아래, exact retention과 parametric adaptation 사이의 **allocation law**
+- retrieval/scaffold는 stable always-on substrate의 구현 수단일 뿐, 새로운 claim의 중심이 아님
+
+---
+
+## 0B. 정식 문제 정의
+
+### 세 substrate
+
+1. **Stable scaffold** S
+   - always-on. raw document 전체에서 cheap retrieval/extraction으로 만든 bounded support context
+   - 모든 baseline과 method가 **동일하게 공유** (fairness)
+   - 구성: query lexical overlap + cheap embedding similarity + document coverage rule
+   - fixed number of scaffold spans / fixed total scaffold token budget
+
+2. **Write state** W
+   - frozen base model 위의 small fast-weight adapter state (LoRA/adapters)
+   - chunk-level self-supervised NTP loss로 inference-time update
+   - write는 prompt에 materialize되지 않고 **adapter state로만** 반영
+
+3. **Exact cache** C
+   - raw document에서 골라낸 exact spans/tokens
+   - 최종 prompt에 **명시적으로 materialize** (verbatim)
+
+### Allocation 변수
+
+raw document를 m개 chunk C_1, ..., C_m으로 나눈다.
+
+- write allocation: 각 chunk에 대해 write step 수 k_i ∈ Z≥0
+- cache allocation: 각 후보 span s에 대해 binary keep variable m_s ∈ {0,1}
+
+### 예산 제약
+
+메인 budget axis = **extra end-to-end latency**
+
+```
+B = τ_method - τ_stable
+```
+
+τ_stable = stable-only pipeline latency, τ_method = 임의 method latency.
+
+같은 hardware, 같은 software stack, batch size 1, 동일 decode setting에서 측정.
+
+secondary logging (별도 기록):
+- extra GPU-seconds
+- total write steps
+- total cached tokens/spans
+- route/signal overhead
+- decode overhead
+
+부록에서는 compute vs cache-size 2D Pareto도 제공.
+
+### Raw document length vs Materialized prompt length
+
+- **raw document length:** allocator가 볼 수 있는 전체 원문 길이
+- **materialized prompt length:** 실제 base LM이 마지막 decode 시 보는 prompt 길이
+
+이 구분이 중요한 이유:
+- internal methods (hybrid/write/cache)는 bounded materialized prompt regime에서 동작
+- full-context baselines는 실제 prompt 길이가 모델 context limit에 직접 묶임
+
+이 차이를 논문 전체에서 명시해야 E2B/E4B와 32k/64k/128k의 혼선이 사라진다.
+
+### Provisional budget grid
+
+```
+B ∈ {0, 0.5, 1.0, 1.5} × τ_stable
+```
+
+Week 1-2 calibration 후 확정. Calibration decision rules:
+- median route cost > medium budget의 40% → K 줄이거나 grid 확대
+- median route cost > small budget의 80% → small-B 제거
+
+---
+
+## 0C. Method 상세: TriStore-BMA Pipeline
+
+### High-level pipeline
+
+```
+1. raw document → chunk (sliding window, overlap)
+2. cheap preselector → 전체 문서에서 상위 K개 candidate chunk 선별
+3. shortlisted chunks에 대해 scaffold-prefixed signal pass (loss/surprisal 측정)
+4. marginal-utility interleaving allocator → write에 줄지 cache에 줄지 결정
+5. stable scaffold + cached spans + query → materialize, write adapter state 적용 → decode
+```
+
+### Signal pass
+
+각 shortlisted chunk C_i에 대해:
+
+```
+[scaffold prefix] + [C_i]
+```
+
+를 모델에 넣고, **loss/surprisal는 오직 C_i 부분에서만** 계산.
+
+이렇게 하면 signal의 해석이 "stable scaffold로도 충분히 커버되지 않는 residual difficulty"가 되어 story와 맞는다.
+
+chunk를 단독으로 넣으면 시작 부분 loss가 인위적으로 높아지는 artifact 발생 → scaffold-prefixed가 기본.
+
+### Write branch
+
+- frozen base LM + small LoRA on selected layers
+- 1-step or few-step gradient update per selected chunk
+- chunk-wise update only (문서 전체를 한 번에 학습하지 않음)
+- Gemma 4 공식 LoRA/QLoRA tuning path 지원
+
+Write utility:
+```
+U_w(i, r) = L̃_i - δ(r-1)
+```
+- L̃_i: scaffold-conditioned chunk loss (normalized)
+- r: same chunk에 누적 write step index
+- δ: repeated write diminishing-return penalty (single scalar)
+
+**핵심 risk:** write는 raw chunk distribution에서 학습하지만 final decode는 scaffold+cache+query distribution. 이 mismatch가 write 효과를 죽일 수 있음 → Phase 1에서 즉시 검증.
+
+### Cache branch
+
+- signal = surprisal 중심
+- exact span length bounded
+- top spans materialized verbatim
+
+Cache utility:
+```
+U_c(s) = S̃(s)
+```
+- S̃(s): normalized span surprisal score
+
+redundancy penalty는 main에서 제거, appendix ablation으로만.
+
+### Allocator: Marginal-utility interleaving
+
+매 step에서:
+1. next write step의 marginal gain = U_w(best available chunk, r+1)
+2. next cache span의 marginal gain = U_c(best available span)
+3. 더 큰 쪽에 한 단위 예산 배분
+
+write-first greedy를 버린 이유:
+- write 편향 내장
+- theory의 interior optimum / KKT 해석과 불일치
+- interleaving이 "split matters"를 method에서 구현하는 가장 직관적 형태
+
+### Final prompt
+
+```
+Prompt = [instruction] + [query] + [scaffold S] + [cached spans C]
+```
+
+Write state는 prompt에 materialize되지 않고 adapter state로만 반영.
+
+---
+
+## 0D. Backbone: Gemma 4
+
+### Variant ladder
+
+| Variant | 역할 | 크기 | Context |
+|---------|------|------|---------|
+| E2B-it | bring-up, robustness, 저비용 재현 | ~5B | 128K |
+| **E4B-it** | **main paper default** | ~5B (active) | 128K |
+| 26B A4B-it | appendix scale-up | 26B (active ~4B) | 128K |
+| 31B dense | 제외 (재현성/비용) | 31B | — |
+
+### 선택 이유
+- configurable thinking modes (enable_thinking=True/False)
+- native system role
+- latest Transformers support
+- 공식 LoRA/QLoRA tuning path
+- 128K/256K context window
+
+### 운영 원칙
+- 한 실험 run 안에서는 오직 하나의 variant만 사용
+- stable-only / thinking / write-only / cache-only / hybrid가 항상 동일 variant 공유
+- main text 주 결과는 E4B 기준
+- E2B는 bring-up / robustness evidence
+- 26B A4B는 core claim이 닫힌 뒤 appendix
+
+### Thinking baseline 정의
+- main text thinking baseline: Gemma 4 native thinking mode + latency-matched max_new_tokens
+- non-thinking baselines: same chat template with enable_thinking=False
+- API: `processor.apply_chat_template(..., enable_thinking=True/False)`
+- 응답 파싱: `<|channel>thought ... <|/channel>` 태그로 thought/answer 분리
+
+---
+
+## 0E. 관련 문헌 포지셔닝
+
+### Write/update 축
+- **qTTT** (ICLR 2026 poster): query-only TTT, thinking보다 gradient update가 효율적. write 쪽 operating point. exact token retention 자체는 주제로 삼지 않음.
+- **GDWM** (2026.01): test-time adaptation을 budget-constrained memory consolidation으로 재정식화. 이 논문이 가장 직접적으로 계승하는 문헌. 단, **write 내 allocation만** 다루고 cross-substrate는 안 함.
+- **In-Place TTT / LaCT** (ICLR 2026 oral): TTT의 hardware inefficiency 감소, chunk-wise update practical. "write를 하되 반드시 chunk-wise and hardware-aware하게"라는 engineering lesson.
+- **PERK** (ICLR 2026 poster): LoRA를 test-time memory module로 사용. 0.5B/7B에서 강한 결과. write substrate의 직접적 선행 연구.
+
+### Exact retention / cache 축
+- **SR-TTT** (2026.02): compressed fast-weight memory가 exact recall에서 catastrophic failure. surprisal-driven residual cache로 완화. **가장 직접적 경쟁자.** exact cache branch를 두는 근거.
+- **WG-KV** (2025.12): long-context inference를 KV admission/selection/eviction으로. trainable gate 기반 KV-centric. parametric write branch와 함께 budget allocation으로 보지는 않음.
+
+### Architecture-level memory 축
+- **Titans** (NeurIPS 2025): memory-augmented architecture. "hybrid memory가 필요할 수 있다"는 큰 방향성. 우리와 달리 architecture 자체를 바꿈.
+- **ATLAS**: memory-augmented architecture family. frozen LM 위의 inference-time policy가 아니라 architecture 수준.
+- **GradMem** (2026.03): memory tokens에 gradient descent로 써 넣음. write의 또 다른 형태.
+
+### 기타 인접
+- **TTT-E2E** (2025.12): LoRA continual learning, constant latency. exact recall 실패 인정 → cache 필요 근거. **scooping risk**: Sun 그룹이 cache 추가하면 위험.
+- **MemOS** (2025.07): plaintext/activation/parameter 3-tier memory. 개념적 중복이지만 budget-allocation 메커니즘 없음.
+- **Doc-to-LoRA** (Sakana, 2025): 문서를 LoRA로 내부화. write 문제의식 직접 겹침.
+
+### Evaluation 축
+- **RULER**: retrieval + multi-hop tracing + aggregation + QA. failure mode 분해에 가장 깨끗. synthetic.
+- **LongBench v2**: 503 MCQ, 8k-2M words, 6 category. 현실형 mixed failure.
+- **HELMET**: synthetic NIAH만으로는 downstream 평가 부족 → RULER + LongBench v2를 함께 쓰는 justification.
+- **ZeroSCROLLS**: zero-shot long-text benchmark. support/appendix 역할.
+- **SCBench**: shared-context / KV lifecycle / multi-request. main claim 바깥 (single-query regime).
+
+### Testable predictions from theory
+
+toy theory가 만들어야 하는 검증 가능한 예측:
+1. mixed ratio가 바뀌면 optimal split이 이동해야 한다 → H4
+2. exact-heavy slice에서는 cache marginal utility가 더 커야 한다
+3. dependency-heavy slice에서는 write marginal utility가 더 커야 한다
+4. synthetic oracle allocation과 heuristic allocation 사이 gap은 줄어들어야 한다
+
+main에서는 theorem을 크게 밀지 않고, **small but falsifiable proposition**으로 유지. 지면은 allocator dynamics 시각화에 투자.
+
+---
+
 ## 1. 완료된 항목
 
 ### CPU Scaffolding
