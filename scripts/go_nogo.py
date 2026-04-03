@@ -8,11 +8,12 @@ Validates the four critical go/no-go conditions from research_plan.md §9:
 """
 
 import json
+import os
 import sys
 import time
 
-sys.path.insert(0, "/home/elicer/wwwc/.venv/lib/python3.10/site-packages")
-sys.path.insert(0, "/home/elicer/wwwc/src")
+sys.path.insert(0, os.path.expanduser("~/wwwc/.venv/lib/python3.10/site-packages"))
+sys.path.insert(0, os.path.expanduser("~/wwwc/src"))
 
 import torch
 from transformers import AutoModelForCausalLM, AutoProcessor
@@ -255,7 +256,8 @@ def main():
         "results": results,
         "verdict": "GO" if all_pass else "NO-GO",
     }
-    with open("/home/elicer/wwwc/artifacts/go_nogo_results.json", "w") as f:
+    out_path = os.path.expanduser("~/wwwc/artifacts/go_nogo_results.json")
+    with open(out_path, "w") as f:
         json.dump(out, f, indent=2)
     print(f"Results saved to artifacts/go_nogo_results.json")
 
