@@ -46,7 +46,14 @@ def build_gemma_messages(
     scaffold: list[str],
     cache: list[str],
     enable_thinking: bool,
-) -> list[dict[str, str]]:
+) -> list[dict]:
+    """Build Gemma 4 chat messages in multimodal content format.
+
+    Gemma 4 processor.apply_chat_template expects content as a list
+    of typed dicts: [{"type": "text", "text": "..."}].
+    The enable_thinking flag is passed to apply_chat_template, not
+    embedded in the messages themselves.
+    """
     prompt = build_final_prompt(
         instruction=system_instruction,
         query=query,
@@ -56,10 +63,6 @@ def build_gemma_messages(
     return [
         {
             "role": "user",
-            "content": prompt.render_text(),
-        },
-        {
-            "role": "assistant",
-            "content": "" if not enable_thinking else "[thinking-enabled-via-chat-template]",
+            "content": [{"type": "text", "text": prompt.render_text()}],
         },
     ]
