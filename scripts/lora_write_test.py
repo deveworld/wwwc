@@ -160,6 +160,7 @@ def lora_write_step(peft_model, processor, document_text, lr=1e-4):
     by doing a single gradient step on self-supervised NTP loss.
     """
     peft_model.train()
+    peft_model.enable_input_require_grads()  # Required for gradient flow with device_map
 
     # Tokenize document as a single chunk for simplicity
     inputs = processor.tokenizer(
