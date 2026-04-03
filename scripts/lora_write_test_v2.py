@@ -153,6 +153,10 @@ def attach_lora(model):
         bias="none",
     )
     peft_model = get_peft_model(model, lora_config)
+    # Critical: cast LoRA params to float32 to avoid bf16 precision loss
+    for name, param in peft_model.named_parameters():
+        if param.requires_grad:
+            param.data = param.data.to(torch.float32)
     trainable = sum(p.numel() for p in peft_model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in peft_model.parameters())
     print(f"LoRA: {trainable/1e6:.1f}M trainable / {total/1e9:.2f}B total ({100*trainable/total:.2f}%)")
