@@ -112,10 +112,22 @@ def attach_lora(model):
 
 
 def reset_lora(peft_model):
+    """Reset LoRA to fresh initialization state.
+
+    LoRA = x @ A @ B. B is zero-initialized, A is Kaiming-initialized.
+    Zeroing both kills gradient flow (output always 0 → grad 0).
+    Must re-initialize A with Kaiming and B with zeros.
+    """
     with torch.no_grad():
-        for _, p in peft_model.named_parameters():
+        for name, p in peft_model.named_parameters():
             if p.requires_grad:
-                p.data.zero_()
+                if "lora_A" in name:
+                    torch.nn.init.kaiming_uniform_(p.data, a=5**0.5)
+                    p.data = p.data.to(torch.float32)
+                elif "lora_B" in name:
+                    p.data.zero_()
+                else:
+                    p.data.zero_()
 
 
 def lora_write_chunks(peft_model, processor, chunks, n_steps=20, lr=1e-3):
