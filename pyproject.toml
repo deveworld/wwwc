@@ -13,6 +13,7 @@ dependencies = [
 [project.optional-dependencies]
 model = [
   "accelerate>=1.4.0",
+  "pillow>=10.0.0",
   "torch>=2.4.0",
   "transformers>=4.51.3",
 ]
