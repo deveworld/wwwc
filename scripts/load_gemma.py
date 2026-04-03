@@ -20,8 +20,12 @@ model = AutoModelForCausalLM.from_pretrained(
 print(f"Model loaded! Device: {model.device}")
 print(f"Model params: {sum(p.numel() for p in model.parameters()) / 1e9:.2f}B")
 
+# Gemma 4 multimodal format: content must be list of dicts
+messages = [
+    {"role": "user", "content": [{"type": "text", "text": "What is 2+2?"}]},
+]
+
 # Test chat template (thinking=False)
-messages = [{"role": "user", "content": "What is 2+2?"}]
 inputs = processor.apply_chat_template(
     messages,
     return_tensors="pt",
