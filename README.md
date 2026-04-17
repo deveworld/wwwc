@@ -1,6 +1,8 @@
 # TriStore-BMA [ARCHIVED]
 
-**Status: Project discontinued (2026-04-03)**
+> **Status: Project discontinued (2026-04-03).** See [POSTMORTEM](docs/POSTMORTEM.md) for details.
+>
+> Blog post: [My LoRA Memorized a Document and Still Couldn't Answer Questions About It](https://blog.worldsw.dev/tristore-bma/)
 
 ## What was this?
 
