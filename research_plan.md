@@ -9,8 +9,7 @@
 
 ## 0. Executive summary
 
-이 프로젝트의 최종 목표는 “새로운 거대 장문맥 아키텍처”를 제안하는 것이 아니다.  
-이 논문의 핵심 질문은 다음 하나로 고정한다.
+이 프로젝트의 최종 목표는 “새로운 거대 장문맥 아키텍처”를 제안하는 것이 아니다. 이 논문의 핵심 질문은 다음 하나로 고정한다.
 
 > **고정된 추가 추론 예산 아래에서, long-context 입력의 어떤 정보는 parametric write에, 어떤 정보는 exact cache에 배분해야 하는가? 그리고 hybrid allocation이 언제 single-store strategy보다 더 좋은 accuracy–efficiency Pareto frontier를 만드는가?**
 
@@ -20,7 +19,7 @@
 
 이 계획은 다음 사실 위에서 구성된다.
 
-1. ICLR 2026은 **초기 제출 본문 9페이지 제한**, **부록은 리뷰어가 읽을 의무 없음**, **익명성 위반 시 desk reject**, **significant LLM usage 공개 의무**, **저자 리뷰 등록 누락 시 desk reject 가능성**을 명시한다. 즉, 논문은 커야 하는 것이 아니라 **한 문장짜리 과학적 질문과 그 질문을 닫는 증거**가 강해야 한다.
+1. ICLR 2026은 **초기 제출 본문 9페이지 제한**, **부록은 리뷰어가 읽을 의무 없음**, **익명성 위반 시 desk reject**, **significant LLM usage 공개 의무**, **저자 리뷰 등록 누락 시 desk reject 가능성**을 명시한다. 따라서 본문은 한 문장짜리 과학적 질문과 그 질문을 닫는 증거 중심으로 구성한다.
 2. ICLR reviewer guide는 accept 판단의 핵심을 **문제의 명확성, 문헌 속 위치, claim support의 rigor, 그리고 community에 주는 새로운 지식**으로 둔다. **SOTA가 아니어도** 새롭고 영향력 있는 지식을 설득력 있게 보여주면 가치가 있다고 명시한다.
 3. long-context 문헌은 이미 qTTT, GDWM, SR-TTT, In-Place TTT, Titans, ATLAS, GradMem, WG-KV, SCBench, HELMET 등으로 빠르게 차고 있다. 따라서 이 논문이 살아남으려면 “memory를 여러 개 붙였다”가 아니라, **무엇을 언제 write하고 언제 exact cache해야 하는지에 대한 allocation law**를 보여줘야 한다.
 
@@ -63,7 +62,7 @@
 - 이 논문의 핵심 공헌은 **고정된 추가 latency 예산 아래, exact retention(materialized evidence)과 parametric adaptation(write) 사이의 allocation law**다.
 - retrieval/scaffold는 **stable always-on substrate**의 구현 수단일 뿐이며, 새로운 claim의 중심은 아니다.
 
-이 framing은 novelty 공격을 피하는 것이 아니라, **novelty의 정확한 위치를 다시 잡는 것**이다.
+이 framing의 목적은 novelty의 위치를 명시적으로 지정하는 데 있다.
 
 ---
 
@@ -287,7 +286,7 @@ chunk를 독립적으로 넣고 loss를 계산하면, chunk 시작 부분이 con
 
 > “stable scaffold로도 충분히 커버되지 않는 residual difficulty”
 
-가 되어 story와 정확히 맞는다.
+가 되어 story와 일치한다.
 
 #### optional sensitivity
 
@@ -332,7 +331,7 @@ write는 raw chunk에 대해 학습하지만, final decode는 scaffold + cache +
 1. write objective를 scaffold-conditioned objective로 더 바꾼다.
 2. write branch를 메인 method의 중심이 아니라 auxiliary로 낮춘다.
 
-즉, write는 계획상 필수지만, **효과가 전혀 없는데도 논문 스토리를 고집하지 않는다.**
+write는 계획상 필수 구성요소지만, 효과가 확인되지 않으면 스토리에서 중심을 내린다.
 
 ### 5.5 cache branch
 
@@ -394,7 +393,7 @@ write-first greedy를 버리고, **marginal-utility interleaving**을 메인 all
 
 - write-first는 write 편향을 내장한다.
 - theory의 interior optimum / KKT 해석과 안 맞는다.
-- interleaving이야말로 “split matters”를 method에서 구현하는 가장 직관적인 형태다.
+- interleaving은 “split matters”를 method에서 구현하는 직관적인 형태다.
 
 ### 5.8 최종 prompt
 
@@ -577,7 +576,7 @@ B \in \{0,
 
 이다.
 
-하지만 최신 리뷰가 정확히 지적했듯, signal pass 비용이 작지 않으면 작은 B에서 routing만 하고 write/cache를 거의 못 쓰는 상황이 생길 수 있다. 따라서 **Week 1–2 calibration 후 grid를 최종 잠근다.**
+하지만 최신 리뷰가 지적했듯, signal pass 비용이 작지 않으면 작은 B에서 routing만 하고 write/cache를 거의 못 쓰는 상황이 생길 수 있다. 따라서 **Week 1–2 calibration 후 grid를 최종 잠근다.**
 
 ### 8.3 budget calibration decision rule
 
@@ -682,7 +681,7 @@ LongBench v2 같은 MCQ evaluation에서는 이 구성이 가장 방어적이다
 **문제:** preregistered mixed slices에서 hybrid가 예상보다 안 이길 수 있다.
 
 **정책:** slice 정의는 고정한다.  
-결과가 안 맞으면 slice를 바꾸지 않고, **왜 theory prediction과 어긋났는지 분석 자체를 결과로 남긴다.**
+결과가 안 맞으면 slice를 바꾸지 않고, theory prediction과 어긋난 원인 분석을 결과로 남긴다.
 
 ---
 
@@ -888,8 +887,7 @@ Week 8부터 항상 유지할 문서:
 
 ## 15. 최종 판정
 
-이 계획서는 이제 더 이상 “아이디어 메모”가 아니다.  
-이 문서는 **바로 구현 가능한 연구 사양서**다.
+이 계획서는 구현 가능한 연구 사양서 수준까지 정리되었다.
 
 남아 있는 위험은 연구 방향의 위험이 아니라 구현상 subtle risk다. 그리고 그 subtle risk는 이미 다음 네 가지로 분해되었다.
 
@@ -899,7 +897,7 @@ Week 8부터 항상 유지할 문서:
 4. preregistered mixed slices의 실제 behavior
 
 이 네 가지는 모두 **Week 1–2 calibration**에서 답이 나온다.  
-즉, 지금 필요한 것은 더 많은 브레인스토밍이 아니라 **캘리브레이션을 시작하는 것**이다.
+다음 단계는 캘리브레이션 착수다.
 
 따라서 최종 실행 명령은 간단하다.
 
@@ -911,21 +909,21 @@ Week 8부터 항상 유지할 문서:
 
 ## References / primary sources to anchor the paper plan
 
-1. ICLR 2026 Author Guide — https://iclr.cc/Conferences/2026/AuthorGuide  
-2. ICLR 2026 Reviewer Guide — https://iclr.cc/Conferences/2026/ReviewerGuide  
-3. qTTT / “Let’s (not) just put things in Context” — https://openreview.net/forum?id=H0bcEdPCoc  
-4. Gemma 4 launch blog — https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/  
-5. Gemma get started docs — https://ai.google.dev/gemma/docs/get_started  
-6. Gemma 4 model card — https://ai.google.dev/gemma/docs/core/model_card_4  
-7. Gemma Hugging Face Transformers inference docs — https://ai.google.dev/gemma/docs/core/huggingface_inference  
-8. Gemma LoRA tuning docs — https://ai.google.dev/gemma/docs/core/lora_tuning  
-9. RULER paper/repo — https://github.com/NVIDIA/RULER  
-10. LongBench v2 ACL 2025 — https://aclanthology.org/2025.acl-long.183/  
-11. ZeroSCROLLS — https://aclanthology.org/2023.findings-emnlp.536/  
-12. HELMET repo / paper — https://github.com/princeton-nlp/HELMET  
-13. SCBench — https://www.microsoft.com/en-us/research/publication/scbench-a-kv-cache-centric-analysis-of-long-context-methods/  
-14. RAG (NeurIPS 2020) — https://papers.neurips.cc/paper_files/paper/2020/file/6b493230205f780e1bc26945df7481e5-Paper.pdf  
-15. Titans — https://arxiv.org/abs/2501.00663  
-16. ATLAS — https://arxiv.org/abs/2505.23735  
-17. GradMem — https://openreview.net/forum?id=Wdzhnmu5HR  
-18. WG-KV — https://arxiv.org/abs/2512.17452
+1. ICLR 2026 Author Guide: https://iclr.cc/Conferences/2026/AuthorGuide  
+2. ICLR 2026 Reviewer Guide: https://iclr.cc/Conferences/2026/ReviewerGuide  
+3. qTTT / “Let’s (not) just put things in Context”: https://openreview.net/forum?id=H0bcEdPCoc  
+4. Gemma 4 launch blog: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/  
+5. Gemma get started docs: https://ai.google.dev/gemma/docs/get_started  
+6. Gemma 4 model card: https://ai.google.dev/gemma/docs/core/model_card_4  
+7. Gemma Hugging Face Transformers inference docs: https://ai.google.dev/gemma/docs/core/huggingface_inference  
+8. Gemma LoRA tuning docs: https://ai.google.dev/gemma/docs/core/lora_tuning  
+9. RULER paper/repo: https://github.com/NVIDIA/RULER  
+10. LongBench v2 ACL 2025: https://aclanthology.org/2025.acl-long.183/  
+11. ZeroSCROLLS: https://aclanthology.org/2023.findings-emnlp.536/  
+12. HELMET repo / paper: https://github.com/princeton-nlp/HELMET  
+13. SCBench: https://www.microsoft.com/en-us/research/publication/scbench-a-kv-cache-centric-analysis-of-long-context-methods/  
+14. RAG (NeurIPS 2020): https://papers.neurips.cc/paper_files/paper/2020/file/6b493230205f780e1bc26945df7481e5-Paper.pdf  
+15. Titans: https://arxiv.org/abs/2501.00663  
+16. ATLAS: https://arxiv.org/abs/2505.23735  
+17. GradMem: https://openreview.net/forum?id=Wdzhnmu5HR  
+18. WG-KV: https://arxiv.org/abs/2512.17452

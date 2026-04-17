@@ -16,7 +16,7 @@ This document records the GPU bring-up process and verified findings.
    - Model size: 10.2GB safetensors, 5.12B parameters
 
 2. **API pattern verified:**
-   - Must use `AutoProcessor` (not `AutoTokenizer`) — Gemma 4 is multimodal
+   - Must use `AutoProcessor` (not `AutoTokenizer`); Gemma 4 is multimodal
    - `AutoProcessor` requires `pillow` and `torchvision` even for text-only
    - Messages must use multimodal content format:
      ```python
@@ -57,7 +57,7 @@ This document records the GPU bring-up process and verified findings.
 | Cache exact recall | **PASS** | No-cache→"42068" (hallucination), Cache→"ALPHA-9382-ZULU" (exact) |
 | Thinking mode | **PASS** | Thought tag present, 256 tok/14.9s vs 21 tok/1.2s non-thinking |
 
-**Verdict: GO — proceed to calibration**
+**Verdict: GO, proceed to calibration**
 
 ## Locked Specifications
 
@@ -115,12 +115,12 @@ pillow>=10.0
 
 ### On RTX PRO 6000 (production hardware)
 
-1. **Gemma 4 E4B bring-up** — load `google/gemma-4-E4B-it`, verify chat template
-2. **Latency calibration** — measure real route overhead, signal pass cost, write step cost
-3. **Budget grid lock** — run `budget-check` with measured overhead, finalize grid
-4. **RULER mini sweep** — first real calibration run with `gpu_handoff.yaml`
-5. **Write branch validation** — LoRA adapter update on dependency-heavy slices
-6. **Hybrid interior split** — verify allocator produces non-trivial write/cache splits
+1. **Gemma 4 E4B bring-up**: load `google/gemma-4-E4B-it`, verify chat template
+2. **Latency calibration**: measure real route overhead, signal pass cost, write step cost
+3. **Budget grid lock**: run `budget-check` with measured overhead, finalize grid
+4. **RULER mini sweep**: first real calibration run with `gpu_handoff.yaml`
+5. **Write branch validation**: LoRA adapter update on dependency-heavy slices
+6. **Hybrid interior split**: verify allocator produces non-trivial write/cache splits
 
 ### Go/No-Go Items Still Pending
 

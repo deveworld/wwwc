@@ -2,7 +2,7 @@
 
 Chronological record of GPU bring-up sessions, decisions, and troubleshooting.
 
-## 2026-04-03: Colab T4 — First Model Load
+## 2026-04-03: Colab T4, First Model Load
 
 ### Goal
 Load Gemma 4 E2B-it, verify chat template with thinking/non-thinking modes.
@@ -23,7 +23,7 @@ Load Gemma 4 E2B-it, verify chat template with thinking/non-thinking modes.
 | 17:17 | Web search for correct model ID | Found: `google/gemma-4-E2B-it` (uppercase E2B) |
 | 17:18 | HF token setup via Colab Secrets | `notebook_login()` widget didn't render; used `userdata.get("HF_TOKEN")` |
 | 17:27 | Model download | 10.2GB safetensors, ~4 min at ~45MB/s |
-| 17:28 | First `AutoTokenizer.apply_chat_template` | KeyError: 'shape' — tokenizer doesn't work, need processor |
+| 17:28 | First `AutoTokenizer.apply_chat_template` | KeyError: 'shape'; tokenizer doesn't work, need processor |
 | 17:31 | Switch to `AutoProcessor` | ImportError: PIL required |
 | 17:33 | Add pillow | ImportError: torchvision required |
 | 17:35 | Add torchvision, retry | TypeError: string indices must be integers |
@@ -48,7 +48,7 @@ Load Gemma 4 E2B-it, verify chat template with thinking/non-thinking modes.
 
 ---
 
-## 2026-04-03: A100 MIG 2g-20GB — Go/No-Go
+## 2026-04-03: A100 MIG 2g-20GB, Go/No-Go
 
 ### Goal
 Run 4 go/no-go validation checks on production-class hardware.
@@ -86,24 +86,24 @@ Run 4 go/no-go validation checks on production-class hardware.
 - **Prompt:** Scaffold describing 3 substrates + query "What are the three substrates?"
 - **Answer:** "The three substrates in the TriStore system are write, cache, and the stable scaffold."
 - **Latency:** 2123ms for 19 output tokens
-- **Verdict:** PASS — model correctly uses scaffold context
+- **Verdict:** PASS. Model correctly uses scaffold context.
 
 #### Check 2: Write vs Stable (Dependency-Heavy)
 - **Stable (minimal context):** "Alice knows Bob. Bob knows Carol." → Answer: "Carol" (1-hop)
 - **Write (full chain):** 5-person chain → Answer: "Alice,Bob,Carol,Dave,Eve" (full chain)
-- **Verdict:** PASS — richer context enables multi-hop reasoning
+- **Verdict:** PASS. Richer context enables multi-hop reasoning.
 
 #### Check 3: Cache Exact Recall
 - **No cache:** "What is Lab 7 access code?" → "42068" (hallucination)
 - **With cache span:** `[cache] Lab 7 access code: ALPHA-9382-ZULU` → "ALPHA-9382-ZULU" (exact)
-- **Verdict:** PASS — cache eliminates hallucination, enables verbatim recall
+- **Verdict:** PASS. Cache eliminates hallucination, enables verbatim recall.
 
 #### Check 4: Thinking Mode
 - **Non-thinking:** 22 input tokens → 21 output tokens, 1236ms
 - **Thinking:** 28 input tokens → 256 output tokens, 14908ms
 - **Thinking tag:** `<|channel>thought` present with structured reasoning steps
 - **Reproducibility:** consistent input tokenization across runs
-- **Verdict:** PASS — distinct paths, ~12x latency difference
+- **Verdict:** PASS. Distinct paths, ~12x latency difference.
 
 ### Key Measurements (A100 MIG 2g-20GB)
 
@@ -124,7 +124,7 @@ Run 4 go/no-go validation checks on production-class hardware.
 |----------|------|-------|--------|
 | Colab T4 (15.6GB) | Colab-managed | 2.11.0 | E2B loads, inference works |
 | A100 MIG 2g-20GB | 12.2 / Driver 535 | 2.5.1+cu121 | E2B loads, go/no-go PASS |
-| RTX PRO 6000 (96GB) | TBD | TBD | Pending — target for full calibration |
+| RTX PRO 6000 (96GB) | TBD | TBD | Pending: target for full calibration |
 
 ## Lessons for Future Environments
 

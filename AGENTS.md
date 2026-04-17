@@ -1,4 +1,4 @@
-# AGENTS.md — TriStore-BMA 프로젝트 컨텍스트
+# AGENTS.md: TriStore-BMA 프로젝트 컨텍스트
 
 이 파일은 AI 에이전트가 이 프로젝트에 참여할 때 빠르게 컨텍스트를 잡을 수 있도록 작성되었다.
 
@@ -15,7 +15,7 @@
 
 > 고정된 추가 추론 예산(extra end-to-end latency) 아래에서, long-context 입력의 어떤 정보를 parametric write(LoRA adapter update)에, 어떤 정보를 exact cache(verbatim span retention)에 배분해야 하는지, 그리고 hybrid allocation이 single-store specialization보다 언제 더 좋은 accuracy-efficiency Pareto frontier를 만드는지를 연구한다.
 
-### 이 논문이 아닌 것
+### 이 논문의 범위
 
 - 새로운 아키텍처 논문이 아니다 (frozen pretrained LM 위에서 작동)
 - SOTA를 전면 돌파하는 논문이 아니다 (internal baseline 대비 Pareto 개선을 보인다)
@@ -30,16 +30,16 @@
 
 Long-context 입력을 처리할 때, 모델이 모든 토큰을 한 번에 볼 수 없거나 비효율적인 상황에서, 추가 예산을 두 가지 substrate에 배분한다:
 
-1. **Write (parametric adaptation):** frozen LM 위의 LoRA adapter를 chunk-level self-supervised loss로 inference-time update. 정보를 모델 파라미터에 "쓴다."
-2. **Cache (exact retention):** raw document에서 선택한 span을 final prompt에 verbatim으로 materialize. 정보를 정확히 "보존한다."
+1. **Write (parametric adaptation):** frozen LM 위의 LoRA adapter를 chunk-level self-supervised loss로 inference-time update. 정보를 모델 파라미터에 쓴다.
+2. **Cache (exact retention):** raw document에서 선택한 span을 final prompt에 verbatim으로 materialize. 정보를 원문 그대로 보존한다.
 
 이 두 substrate는 서로 다른 failure mode를 해결한다:
 - **Write가 강한 곳:** diffuse dependency (multi-hop reasoning, 정보가 여러 chunk에 분산)
 - **Cache가 강한 곳:** exact recall (특정 이름, 코드, 숫자 등의 정확한 재현)
 
-### 2.2 왜 이것이 새로운가
+### 2.2 기존 연구와의 차이
 
-기존 문헌은 write/update 쪽(qTTT, GDWM, In-Place TTT)과 exact retention 쪽(SR-TTT, WG-KV)을 각각 따로 발전시켰다. 누구도 **같은 frozen LM 위에서, 같은 extra-latency budget으로, write와 cache를 interleave하는 allocation을** 정식화하지 않았다.
+기존 문헌은 write/update 쪽(qTTT, GDWM, In-Place TTT)과 exact retention 쪽(SR-TTT, WG-KV)을 각각 따로 발전시켰다. 같은 frozen LM 위에서, 같은 extra-latency budget으로, write와 cache를 interleave하는 allocation을 정식화한 선행 연구는 없다.
 
 ### 2.3 핵심 가설
 
@@ -47,7 +47,7 @@ Long-context 입력을 처리할 때, 모델이 모든 토큰을 한 번에 볼 
 - **H2:** dependency-heavy slice에서는 write-only > cache-only
 - **H3:** mixed-failure slice에서는 hybrid > single-store (핵심 claim)
 - **H4:** optimal split은 task mixture에 따라 이동
-- **H5:** hybrid 이득은 "더 많은 compute" 때문이 아니라 "예산을 나눠 쓴 결과"
+- **H5:** hybrid 이득은 더 많은 compute 때문이 아니라 예산을 나눠 쓴 결과
 
 ### 2.4 Method: TriStore-BMA Pipeline
 
@@ -77,6 +77,7 @@ raw document → chunk → preselector(top-K) → signal pass(surprisal)
 | Cache-only | off | on | cache에만 예산 집중 |
 | Hybrid | on | on | interleaving allocation |
 | Thinking | — | — | Gemma 4 native thinking mode |
+
 | Random | random | random | 동일 예산, 랜덤 배분 |
 | Oracle | oracle | oracle | synthetic에서 정답 기반 upper bound |
 
@@ -118,7 +119,7 @@ Mixed slice는 preregistered (결과와 무관하게 고정):
 
 #### Verified Technical Specs
 - **Model ID:** `google/gemma-4-E2B-it` (대문자 E2B, gated model)
-- **API:** `AutoProcessor` (not AutoTokenizer) — Gemma 4는 multimodal
+- **API:** `AutoProcessor` (not AutoTokenizer), Gemma 4는 multimodal
 - **Message format:** `[{"type": "text", "text": "..."}]` (multimodal content format)
 - **Thinking tags:** `<|channel>thought ... <|/channel>`
 - **Dependencies:** pillow, torchvision 필수 (text-only에서도)
@@ -143,15 +144,15 @@ Mixed slice는 preregistered (결과와 무관하게 고정):
 ### 3.3 아직 완료되지 않은 것
 
 - **LoRA write-step update 구현:** adapter inference-time training 미구현 (가장 중요한 미완성)
-- **실제 write branch 검증:** "LoRA 1-step update가 adapter state만으로 accuracy를 올리는가?" — 미검증
-- **Hybrid interior split 검증:** allocator가 non-trivial split을 생성하는가? — 미검증
+- **실제 write branch 검증:** "LoRA 1-step update가 adapter state만으로 accuracy를 올리는가?" 미검증
+- **Hybrid interior split 검증:** allocator가 non-trivial split을 생성하는가? 미검증
 - **Route overhead 측정 및 budget grid 확정**
 - **Full RULER/LongBench v2 데이터 로더**
 - **E4B bring-up** (main paper default)
 
 ### 3.4 핵심 학술적 리스크 (솔직한 평가)
 
-1. **Write branch 작동 여부 (치명적):** LoRA 1-step update가 5B 모델에서 downstream accuracy를 올리지 못하면, hybrid story 자체가 "잘 설계된 RAG"로 퇴화함. 현재 go/no-go check 2는 LoRA가 아니라 prompt enrichment를 테스트한 것임.
+1. **Write branch 작동 여부 (치명적):** LoRA 1-step update가 5B 모델에서 downstream accuracy를 올리지 못하면, hybrid story 자체가 "잘 설계된 RAG"로 퇴화함. 현재 go/no-go check 2는 LoRA가 아니라 prompt enrichment를 테스트하고 있음.
 
 2. **Toy theory의 약함:** expected error 분해는 기초 볼록최적화 수준. ICLR 리뷰어가 "trivially obvious"라고 공격할 가능성 높음.
 
@@ -168,12 +169,12 @@ Mixed slice는 preregistered (결과와 무관하게 고정):
 **목표:** write branch 작동 여부 확인 + budget grid 확정
 
 1. Gemma 4 E4B bring-up on RTX PRO 6000
-2. **LoRA write-step 구현** — PEFT/LoRA adapter, 1-step gradient update per chunk
+2. **LoRA write-step 구현:** PEFT/LoRA adapter, 1-step gradient update per chunk
 3. **Write branch 진짜 검증:**
    - dependency-heavy RULER slice에서 write-only (LoRA update) vs stable-only
    - 이것이 실패하면 write objective 수정 또는 write를 auxiliary로 축소
 4. Scaffold 강도 calibration (near-floor도 near-ceiling도 아닌 범위 확인)
-5. Route overhead 측정 → budget grid 확정
+5. Route overhead 측정 후 budget grid 확정
 6. K, chunk size, span length 확정
 
 **Week 2 종료 시 잠글 것:** variant, chat template, scaffold policy, K, chunk size, span length, budget grid, mixed slice definitions
@@ -301,6 +302,7 @@ wwwc/
 
 ### 주의사항
 - CUDA 12.x 환경에서는 `torch==2.5.x+cu121` 사용 (최신 torch는 CUDA 13 필요)
+
 - `requires-python >= 3.10` (3.10 환경 호환)
 - HuggingFace gated model: `HF_TOKEN` 환경변수 또는 `huggingface-cli login` 필요
 - `google/gemma-4-E2B-it` 모델 페이지에서 라이선스 동의 필수

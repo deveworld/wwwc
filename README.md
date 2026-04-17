@@ -14,7 +14,7 @@ The core hypothesis required LoRA inference-time updates to create usable parame
 - LoRA weights update correctly ✅
 - **Model cannot recall LoRA-stored information during generation** ❌
 
-This is a **write-decode distribution mismatch**: LoRA memorizes next-token patterns from document text, but these patterns don't activate when the model is prompted with a different query format. This failure is structural, not a hyperparameter issue.
+This is a **write-decode distribution mismatch**: LoRA memorizes next-token patterns from document text, but these patterns don't activate when the model is prompted with a different query format. The failure is structural, not a hyperparameter issue.
 
 See [`docs/POSTMORTEM.md`](docs/POSTMORTEM.md) for full details.
 

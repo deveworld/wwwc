@@ -17,20 +17,20 @@
 
 ### Publishable claims (리뷰 합의)
 
-- H1/H2 (cache > write on recall, write > cache on dependency) → **publishable novelty 아님.** 예비 검증일 뿐.
-- **H3:** mixed-failure slice에서 hybrid > single-store → **핵심 claim. 논문의 존재 이유.**
-- **H4:** optimal split이 task mixture에 따라 이동 → **interior split figure.**
-- **H5:** 이득이 "compute 더 써서"가 아니라 "allocation을 잘해서" → **confound 통제 필수.**
+- H1/H2 (cache > write on recall, write > cache on dependency): **publishable novelty 아님.** 예비 검증일 뿐.
+- **H3:** mixed-failure slice에서 hybrid > single-store. **핵심 claim. 논문의 존재 이유.**
+- **H4:** optimal split이 task mixture에 따라 이동. **interior split figure.**
+- **H5:** 이득이 "compute 더 써서"가 아니라 "allocation을 잘해서" 나오며, **confound 통제 필수.**
 
 ### Intellectual center = Allocator
 
-논문 서사는 "write + cache를 섞었다"가 아니라 **"marginal-utility interleaving allocator가 언제 hybrid advantage를 만드는가"**로 서야 한다. 기존 연구는 substrate 내 allocation (GDWM: write 내, Ada-KV: cache 내). TriStore는 substrate 간 allocation.
+논문 서사의 중심은 **"marginal-utility interleaving allocator가 언제 hybrid advantage를 만드는가"**에 있다. 기존 연구는 substrate 내 allocation (GDWM: write 내, Ada-KV: cache 내). TriStore는 substrate 간 allocation.
 
 ---
 
 ## 0A. 논문 포지셔닝
 
-### 이 논문이 아닌 것
+### 제외 범위
 - 새로운 recurrent / hybrid backbone 논문
 - large-scale from-scratch pretraining 논문
 - pure RAG 논문
@@ -38,19 +38,19 @@
 - pure TTT 개선 논문
 - 모든 최신 long-context baseline을 정면으로 이기는 SOTA 논문
 
-### 이 논문인 것
+### 포함 범위
 - frozen pretrained LM 위의 **test-time allocation law** 논문
 - write vs exact cache의 trade-off를 **같은 예산 축**으로 회계하는 논문
 - mixed-failure long-context tasks에서 **hybrid allocation이 필요한 이유**를 empirical로 보이는 논문
 - bounded materialized prompt를 사용하지만, contribution은 retrieval이 아니라 **allocation principle**
 
 ### RAG-like 구조에 대한 stance
-이 프로젝트는 bounded final prompt를 만들기 위해 stable scaffold와 selected cache spans를 materialize한다. 따라서 **구조적으로 RAG-like하다는 공격이 온다.** 이 점은 부정하지 않고, 본문에서 먼저 인정한다.
+이 프로젝트는 bounded final prompt를 만들기 위해 stable scaffold와 selected cache spans를 materialize한다. 따라서 **구조적으로 RAG-like하다는 공격이 온다.** 이 점은 본문에서 먼저 인정한다.
 
 차이는 분명히 적는다:
 - 기존 RAG의 핵심 공헌: retrieval-augmented generation 자체
 - 이 논문의 핵심 공헌: 고정된 추가 latency 예산 아래, exact retention과 parametric adaptation 사이의 **allocation law**
-- retrieval/scaffold는 stable always-on substrate의 구현 수단일 뿐, 새로운 claim의 중심이 아님
+- retrieval/scaffold는 stable always-on substrate의 구현 수단이며, 새로운 claim의 중심은 아님
 
 ---
 
@@ -82,7 +82,7 @@ raw document를 m개 chunk C_1, ..., C_m으로 나눈다.
 
 ### 예산 제약
 
-메인 budget axis = **extra end-to-end latency**
+메인 budget axis는 **extra end-to-end latency**.
 
 ```
 B = τ_method - τ_stable
@@ -119,8 +119,8 @@ B ∈ {0, 0.5, 1.0, 1.5} × τ_stable
 ```
 
 Week 1-2 calibration 후 확정. Calibration decision rules:
-- median route cost > medium budget의 40% → K 줄이거나 grid 확대
-- median route cost > small budget의 80% → small-B 제거
+- median route cost > medium budget의 40%: K 줄이거나 grid 확대
+- median route cost > small budget의 80%: small-B 제거
 
 ---
 
@@ -148,7 +148,7 @@ Week 1-2 calibration 후 확정. Calibration decision rules:
 
 이렇게 하면 signal의 해석이 "stable scaffold로도 충분히 커버되지 않는 residual difficulty"가 되어 story와 맞는다.
 
-chunk를 단독으로 넣으면 시작 부분 loss가 인위적으로 높아지는 artifact 발생 → scaffold-prefixed가 기본.
+chunk를 단독으로 넣으면 시작 부분 loss가 인위적으로 높아지는 artifact 발생하므로, scaffold-prefixed가 기본.
 
 ### Write branch
 
@@ -165,7 +165,7 @@ U_w(i, r) = L̃_i - δ(r-1)
 - r: same chunk에 누적 write step index
 - δ: repeated write diminishing-return penalty (single scalar)
 
-**핵심 risk:** write는 raw chunk distribution에서 학습하지만 final decode는 scaffold+cache+query distribution. 이 mismatch가 write 효과를 죽일 수 있음 → Phase 1에서 즉시 검증.
+**핵심 risk:** write는 raw chunk distribution에서 학습하지만 final decode는 scaffold+cache+query distribution. 이 mismatch가 write 효과를 죽일 수 있으므로 Phase 1에서 즉시 검증.
 
 ### Cache branch
 
@@ -191,7 +191,7 @@ redundancy penalty는 main에서 제거, appendix ablation으로만.
 write-first greedy를 버린 이유:
 - write 편향 내장
 - theory의 interior optimum / KKT 해석과 불일치
-- interleaving이 "split matters"를 method에서 구현하는 가장 직관적 형태
+- interleaving이 "split matters"를 method에서 구현하는 직관적 형태
 
 ### Final prompt
 
@@ -240,12 +240,12 @@ Write state는 prompt에 materialize되지 않고 adapter state로만 반영.
 
 ### Write/update 축
 - **qTTT** (ICLR 2026 poster): query-only TTT, thinking보다 gradient update가 효율적. write 쪽 operating point. exact token retention 자체는 주제로 삼지 않음.
-- **GDWM** (2026.01): test-time adaptation을 budget-constrained memory consolidation으로 재정식화. 이 논문이 가장 직접적으로 계승하는 문헌. 단, **write 내 allocation만** 다루고 cross-substrate는 안 함.
+- **GDWM** (2026.01): test-time adaptation을 budget-constrained memory consolidation으로 재정식화. 이 논문이 가장 직접적으로 계승하는 문헌. 단, **write 내 allocation만** 다루고 cross-substrate는 다루지 않음.
 - **In-Place TTT / LaCT** (ICLR 2026 oral): TTT의 hardware inefficiency 감소, chunk-wise update practical. "write를 하되 반드시 chunk-wise and hardware-aware하게"라는 engineering lesson.
 - **PERK** (ICLR 2026 poster): LoRA를 test-time memory module로 사용. 0.5B/7B에서 강한 결과. write substrate의 직접적 선행 연구.
 
 ### Exact retention / cache 축
-- **SR-TTT** (2026.02): compressed fast-weight memory가 exact recall에서 catastrophic failure. surprisal-driven residual cache로 완화. **가장 직접적 경쟁자.** exact cache branch를 두는 근거.
+- **SR-TTT** (2026.02): compressed fast-weight memory가 exact recall에서 catastrophic failure. surprisal-driven residual cache로 완화. **가장 직접적 경쟁자.** exact cache branch를 두는 근거이다.
 - **WG-KV** (2025.12): long-context inference를 KV admission/selection/eviction으로. trainable gate 기반 KV-centric. parametric write branch와 함께 budget allocation으로 보지는 않음.
 
 ### Architecture-level memory 축
@@ -254,26 +254,26 @@ Write state는 prompt에 materialize되지 않고 adapter state로만 반영.
 - **GradMem** (2026.03): memory tokens에 gradient descent로 써 넣음. write의 또 다른 형태.
 
 ### 기타 인접
-- **TTT-E2E** (2025.12): LoRA continual learning, constant latency. exact recall 실패 인정 → cache 필요 근거. **scooping risk**: Sun 그룹이 cache 추가하면 위험.
+- **TTT-E2E** (2025.12): LoRA continual learning, constant latency. exact recall 실패 인정, cache 필요 근거. **scooping risk**: Sun 그룹이 cache 추가하면 위험.
 - **MemOS** (2025.07): plaintext/activation/parameter 3-tier memory. 개념적 중복이지만 budget-allocation 메커니즘 없음.
 - **Doc-to-LoRA** (Sakana, 2025): 문서를 LoRA로 내부화. write 문제의식 직접 겹침.
 
 ### Evaluation 축
 - **RULER**: retrieval + multi-hop tracing + aggregation + QA. failure mode 분해에 가장 깨끗. synthetic.
 - **LongBench v2**: 503 MCQ, 8k-2M words, 6 category. 현실형 mixed failure.
-- **HELMET**: synthetic NIAH만으로는 downstream 평가 부족 → RULER + LongBench v2를 함께 쓰는 justification.
+- **HELMET**: synthetic NIAH만으로는 downstream 평가 부족하며, RULER + LongBench v2를 함께 쓰는 justification.
 - **ZeroSCROLLS**: zero-shot long-text benchmark. support/appendix 역할.
 - **SCBench**: shared-context / KV lifecycle / multi-request. main claim 바깥 (single-query regime).
 
 ### Testable predictions from theory
 
 toy theory가 만들어야 하는 검증 가능한 예측:
-1. mixed ratio가 바뀌면 optimal split이 이동해야 한다 → H4
+1. mixed ratio가 바뀌면 optimal split이 이동해야 한다 (H4)
 2. exact-heavy slice에서는 cache marginal utility가 더 커야 한다
 3. dependency-heavy slice에서는 write marginal utility가 더 커야 한다
 4. synthetic oracle allocation과 heuristic allocation 사이 gap은 줄어들어야 한다
 
-main에서는 theorem을 크게 밀지 않고, **small but falsifiable proposition**으로 유지. 지면은 allocator dynamics 시각화에 투자.
+main에서는 theorem을 크게 밀지 않고, **small but falsifiable proposition**으로 유지. 지면은 allocator dynamics 시각화에 할당.
 
 ---
 
@@ -311,7 +311,7 @@ main에서는 theorem을 크게 밀지 않고, **small but falsifiable propositi
 
 ---
 
-## 2. Phase 1: Write Branch + Calibration (Week 1-2) — RTX PRO 6000
+## 2. Phase 1: Write Branch + Calibration (Week 1-2), RTX PRO 6000
 
 **이 Phase가 논문의 생사를 결정한다.**
 
@@ -335,13 +335,13 @@ main에서는 theorem을 크게 밀지 않고, **small but falsifiable propositi
 - Metric: fraction of expected entities found in answer
 
 **판정 기준:**
-- write_avg - stable_avg ≥ 0.03 → GO
-- 0 < delta < 0.03 → MARGINAL
-- delta ≤ 0 → FAIL → pivot
+- write_avg - stable_avg ≥ 0.03: GO
+- 0 < delta < 0.03: MARGINAL
+- delta ≤ 0: FAIL, pivot
 
 **진행 상태:** 실험 실행 중 (A100 80GB PCIe)
 
-### 2.2 LoRA Write-Step 구현 (P0 — acceptance gating)
+### 2.2 LoRA Write-Step 구현 (P0, acceptance gating)
 - [ ] `gemma_runner.py`에 LoRA adapter inference-time update 구현
   - frozen base LM + small LoRA on selected layers
   - chunk-level self-supervised NTP loss
@@ -358,29 +358,29 @@ main에서는 theorem을 크게 밀지 않고, **small but falsifiable propositi
 - [ ] 결과 판정:
   - **성공 (write-only > stable-only by ≥3%):** Phase 2 진행
   - **약한 효과 (0-3%):** Plan B 시도
-  - **실패 (write-only ≤ stable-only):** Plan B 시도 → 전부 실패 시 pivot
+  - **실패 (write-only ≤ stable-only):** Plan B 시도. 전부 실패 시 pivot
 
 ### 2.4 Plan B (write 실패 시)
 - [ ] Option A: Query Projection만 타겟팅 (qTTT 방식)
 - [ ] Option B: N-step gradient update 허용 (budget 단위를 Δt ms로)
 - [ ] Option C: LoRA-GA initialization (gradient-aligned)
 - [ ] Option D: MLP Final Layer만 타겟팅 (In-Place TTT 방식)
-- [ ] **전부 실패 시:** measurement paper / negative-result paper로 pivot
+- [ ] 전부 실패 시: measurement paper / negative-result paper로 pivot
 
-### 2.5 Fixed Split Sweep (P0 — interior optimum 확인)
+### 2.5 Fixed Split Sweep (P0, interior optimum 확인)
 - [ ] Mixed slice에서 write/cache split ratio 변화 실험:
   - 0/100 (cache only)
   - 25/75
   - 50/50
   - 75/25
   - 100/0 (write only)
-- [ ] **판정:** interior optimum이 보이면 H3 예비 확인 → Phase 2 진행. 안 보이면 allocator/signal 재설계.
+- [ ] **판정:** interior optimum이 보이면 H3 예비 확인 후 Phase 2 진행. 안 보이면 allocator/signal 재설계.
 
 ### 2.6 Budget Calibration
 - [ ] Route overhead 실측 (signal pass + preselector 비용)
 - [ ] `budget-check` 실행 + budget grid 확정
-  - route > small budget 80% → small-B 제거
-  - route > medium budget 40% → K 축소 또는 grid 확대
+  - route > small budget 80%: small-B 제거
+  - route > medium budget 40%: K 축소 또는 grid 확대
 - [ ] 예산 단위 정의 확정: 1 unit = Δt milliseconds. overhead 포함.
 - [ ] 다축 회계 프로토콜: token budget, latency, GPU-seconds, route overhead를 같은 표에 기록
 
@@ -408,20 +408,20 @@ main에서는 theorem을 크게 밀지 않고, **small but falsifiable propositi
   - Stable-only, Write-only, Cache-only, Hybrid, Random, Thinking, Oracle
 - [ ] 모든 run에서 로그: wall-clock latency, GPU-seconds, route overhead, write steps, cached tokens, materialized prompt length, K, seed, variant
 
-### 3.2 External Baselines (P0 — main text에 포함)
+### 3.2 External Baselines (P0, main text에 포함)
 - [ ] Full-context baseline: 모델 context limit 내 bucket에서 raw document 전체 입력
 - [ ] Naive RAG baseline: top-K chunk를 그대로 prompt에 concat
-- [ ] (가능 시) qTTT faithful reproduction — 최소 appendix
-- [ ] (가능 시) SnapKV/Ada-KV — cache-only compression baseline
+- [ ] (가능 시) qTTT faithful reproduction, 최소 appendix
+- [ ] (가능 시) SnapKV/Ada-KV, cache-only compression baseline
 
-### 3.3 Interior Split Figure (P1 — 논문의 심장)
+### 3.3 Interior Split Figure (P1, 논문의 심장)
 - [ ] X축: write/cache split ratio (또는 budget level), Y축: accuracy
 - [ ] Mixed slice에서 interior optimum이 존재함을 보여주는 figure
 - [ ] Budget 변화에 따라 optimal split이 이동하는 phase diagram (H4)
 
 ### 3.4 Core Ablation (P0)
-- [ ] Allocator 제거: 고정 split (50/50) vs learned allocation → allocator 기여 증명
-- [ ] Signal pass 제거: random score vs surprisal → signal 가치 증명
+- [ ] Allocator 제거: 고정 split (50/50) vs learned allocation, allocator 기여 증명
+- [ ] Signal pass 제거: random score vs surprisal, signal 가치 증명
 - [ ] K-sweep: K=4, 8, 12, 16에서 ranking 안정성
 - [ ] Budget grid별 동일 경향 유지 확인
 
@@ -438,7 +438,7 @@ main에서는 theorem을 크게 밀지 않고, **small but falsifiable propositi
 - [ ] RULER mixed slice에서 hybrid Budget-AUC > write-only Budget-AUC 인가?
 - [ ] RULER mixed slice에서 hybrid Budget-AUC > cache-only Budget-AUC 인가?
 - [ ] Interior split figure에서 non-trivial interior optimum이 보이는가?
-- [ ] **전부 YES → Phase 3. 하나라도 NO → scope 축소 또는 pivot.**
+- [ ] 전부 YES면 Phase 3. 하나라도 NO면 scope 축소 또는 pivot.
 
 ---
 
@@ -487,20 +487,20 @@ Week 8부터 병렬 집필. 실험 끝나고 쓰는 방식 금지.
 | Intro | 0.9 | 연구 질문, allocation law, 핵심 결과 한 문장 |
 | Related Work | 0.7 | write축(qTTT, GDWM, PERK, In-Place TTT), cache축(SR-TTT, WG-KV), architecture축(Titans, ATLAS), evaluation축(RULER, HELMET). **SR-TTT, PERK, GDWM 필수 포함** |
 | Problem Formulation | 0.8 | 3 substrate, allocation 변수, budget 제약, materialized vs raw length |
-| Method | 1.4 | pipeline, scaffold, signal, write, cache, allocator. **Allocator를 전면에** |
+| Method | 1.4 | pipeline, scaffold, signal, write, cache, allocator. Allocator를 전면에 |
 | Theory/Proposition | 0.3 | Small falsifiable proposition만. 나머지 삭제 |
-| **Allocator Dynamics** | **0.8** | **Split dynamics heatmap, phase diagram, failure mode decomposition** (theory 지면 전환) |
+| Allocator Dynamics | 0.8 | Split dynamics heatmap, phase diagram, failure mode decomposition (theory 지면 전환) |
 | Experimental Setup | 0.8 | benchmarks, baselines (external 포함), metrics, budget accounting |
-| Main Results | 2.0 | Budget-AUC, **Pareto frontier (external anchor 포함)**, interior split figure |
+| Main Results | 2.0 | Budget-AUC, Pareto frontier (external anchor 포함), interior split figure |
 | Analysis/Ablations | 0.7 | K sensitivity, allocator ablation, confound control |
 | Limitations/Ethics | 0.6 | reproducibility, privacy/safety, alignment risk |
 
 ### 5.2 메인 Figures
 
 1. **Figure 1:** Method overview (allocator 중심으로 재구성)
-2. **Figure 2:** Pareto frontier on RULER + LongBench v2 — **full-context + naive RAG anchor 포함**
-3. **Figure 3:** Interior split figure — write/cache ratio vs accuracy on mixed slices (논문의 심장)
-4. **Figure 4:** Allocator dynamics heatmap — 어떤 정보가 write/cache에 배분되는지
+2. **Figure 2:** Pareto frontier on RULER + LongBench v2, **full-context + naive RAG anchor 포함**
+3. **Figure 3:** Interior split figure, write/cache ratio vs accuracy on mixed slices (논문의 심장)
+4. **Figure 4:** Allocator dynamics heatmap, 어떤 정보가 write/cache에 배분되는지
 
 ### 5.3 메인 Tables
 
@@ -686,30 +686,30 @@ TTT-E2E(Stanford, Yu Sun 그룹)가 selective caching을 추가하는 후속 연
 ## 11. References
 
 ### 핵심 문헌
-1. ICLR 2026 Author Guide — https://iclr.cc/Conferences/2026/AuthorGuide
-2. ICLR 2026 Reviewer Guide — https://iclr.cc/Conferences/2026/ReviewerGuide
-3. qTTT — https://openreview.net/forum?id=H0bcEdPCoc
-4. RULER — https://github.com/NVIDIA/RULER
-5. LongBench v2 — https://aclanthology.org/2025.acl-long.183/
+1. ICLR 2026 Author Guide: https://iclr.cc/Conferences/2026/AuthorGuide
+2. ICLR 2026 Reviewer Guide: https://iclr.cc/Conferences/2026/ReviewerGuide
+3. qTTT: https://openreview.net/forum?id=H0bcEdPCoc
+4. RULER: https://github.com/NVIDIA/RULER
+5. LongBench v2: https://aclanthology.org/2025.acl-long.183/
 
 ### Backbone
-6. Gemma 4 model card — https://ai.google.dev/gemma/docs/core/model_card_4
-7. Gemma HF inference — https://ai.google.dev/gemma/docs/core/huggingface_inference
-8. Gemma LoRA tuning — https://ai.google.dev/gemma/docs/core/lora_tuning
+6. Gemma 4 model card: https://ai.google.dev/gemma/docs/core/model_card_4
+7. Gemma HF inference: https://ai.google.dev/gemma/docs/core/huggingface_inference
+8. Gemma LoRA tuning: https://ai.google.dev/gemma/docs/core/lora_tuning
 
 ### 경쟁 문헌
-9. SR-TTT — https://arxiv.org/abs/2603.06642
-10. GDWM — (2026.01 preprint)
-11. TTT-E2E — (2025.12 preprint)
-12. PERK — ICLR 2026 poster
-13. In-Place TTT — ICLR 2026 oral
-14. Titans — https://arxiv.org/abs/2501.00663
-15. ATLAS — https://arxiv.org/abs/2505.23735
-16. GradMem — https://openreview.net/forum?id=Wdzhnmu5HR
-17. WG-KV — https://arxiv.org/abs/2512.17452
-18. MemOS — (2025.07)
+9. SR-TTT: https://arxiv.org/abs/2603.06642
+10. GDWM: (2026.01 preprint)
+11. TTT-E2E: (2025.12 preprint)
+12. PERK: ICLR 2026 poster
+13. In-Place TTT: ICLR 2026 oral
+14. Titans: https://arxiv.org/abs/2501.00663
+15. ATLAS: https://arxiv.org/abs/2505.23735
+16. GradMem: https://openreview.net/forum?id=Wdzhnmu5HR
+17. WG-KV: https://arxiv.org/abs/2512.17452
+18. MemOS: (2025.07)
 
 ### 평가
-19. ZeroSCROLLS — https://aclanthology.org/2023.findings-emnlp.536/
-20. HELMET — https://github.com/princeton-nlp/HELMET
-21. SCBench — https://www.microsoft.com/en-us/research/publication/scbench-a-kv-cache-centric-analysis-of-long-context-methods/
+19. ZeroSCROLLS: https://aclanthology.org/2023.findings-emnlp.536/
+20. HELMET: https://github.com/princeton-nlp/HELMET
+21. SCBench: https://www.microsoft.com/en-us/research/publication/scbench-a-kv-cache-centric-analysis-of-long-context-methods/
